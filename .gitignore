@@ -1,0 +1,21 @@
+# Ignore all .DS_Store files
+.DS_Store
+
+# Ignore any directories here, see example
+# output/
+# docs/
+# my_knowledge_base/
+
+# Optionally, if you have any other system-specific files or directories that should be ignored
+# macOS resource forks
+._*
+
+# Spotlight metadata
+.Spotlight-V100
+.Trashes
+
+# OS X thumbnail cache directories
+Thumbs.db
+Thumbs.db:*
+ehthumbs.db
+ehthumbs_vista.db
