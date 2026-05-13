@@ -1,30 +1,49 @@
 import ollama
 import json
 import sys
+import os
 
-# define the tool for the llm's brain
-tools = [
-    {
-        'type': 'function',
-        'function': {
-            'name': 'write_fix_to_disk',
-            'description': 'Overwrite a local file with new code content.',
-            'parameters': {
-                'type': 'object',
-                'properties': {
-                    'filename': {'type': 'string', 'description': 'The file to fix'},
-                    'code': {'type': 'string', 'description': 'The full corrected code content'},
-                },
-                'required': ['filename','code'],
-            }
-        }
-    }
-]
+# this is the tool the agent will use
+def write_fix_to_disk(filename: str, code: str):
+    """Writes the provided code to the specified file. Use this to apply fixes."""
+    # human confirmation
+    confirm = input(f"\n[AGENT] Requesting permission to overwrite {filename}. Proceed? (y/n): ")
+    if confirm.lower() == 'y':
+        with open(filename, "w") as f:
+            f.read(code)
+        return f"Successfully updated {filename}."
+    return "Permission denied by human."
+
+
 
 def run_agent_workflow(file_to_audit):
+    # is the file there?
+    if not os.path.exists(file_to_audit):
+        print(f"Error: {file_to_audit} not found.")
+        return
+    
     # first, the initial audit
     with open(file_to_audit, "r") as f:
         original_code = f.read()
+
+    # define the tool for the llm's brain
+    tools = [
+        {
+            'type': 'function',
+            'function': {
+                'name': 'write_fix_to_disk',
+                'description': 'Overwrite a local file with new code content.',
+                'parameters': {
+                    'type': 'object',
+                    'properties': {
+                        'filename': {'type': 'string', 'description': 'The file to fix'},
+                        'code': {'type': 'string', 'description': 'The full corrected code content'},
+                    },
+                    'required': ['filename','code'],
+                }
+            }
+        }
+    ]
 
     print(f"Agent is analyzing {file_to_audit}...")
 
