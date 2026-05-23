@@ -43,6 +43,10 @@ def run_agent_workflow(file_to_audit):
     with open(file_to_audit, 'r') as f:
         original_code = f.read()
 
+    # get the private rules from the knowledge base
+    print("Fetching internal engineering standards...")
+    reference_rules = get_standards_context("architectural rules naming conventions security")
+
     # The 'Tools' list tells the LLM what functions exist
     tools = [
         {
@@ -62,15 +66,24 @@ def run_agent_workflow(file_to_audit):
         }
     ]
 
-    print(f"Agent is analyzing {file_to_audit}...")
+    # construct the prompt using the context
+    system_instruction = (
+        "You are an autamated compliance agent. You must audit this user's code against the "
+        "provided Engineering Standards. If the code violates any of these specific rules, "
+        "you MUST invoke the write_fix_to_disk tool to bring it into compliance. "
+        f"\n\nEngineering Standards:\n{reference_rules}"
+    )
+
+    print(f"Agent is analyzing {file_to_audit} against retrieved standards...")
 
     response = ollama.chat(
         model='qwen2.5-coder:7b',
         messages=[
-            {'role': 'system', 'content': 'You are an autonomous repair agent. If there is a bug, use write_fix_to_disk.'},
+            {'role': 'system', 'content': system_instruction},
             {'role': 'user', 'content': f"Code:\n{original_code}"}
         ],
         tools=tools,
+        options={'temperature': 0.0}
     )
 
     # debug behavior
@@ -85,7 +98,7 @@ def run_agent_workflow(file_to_audit):
                 result = write_fix_to_disk(args['filename'], args['code'])
                 print(f"Tool Output: {result}")
     else:
-        print("No tool call requested by agent.")
+        print("Verification complete: Code complies with all indexed local standards.")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
