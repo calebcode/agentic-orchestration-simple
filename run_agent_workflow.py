@@ -2,6 +2,7 @@ import sys
 import ollama
 import json
 import os
+import chromadb
 
 # --- THE TOOL (Implementation) ---
 def write_fix_to_disk(filename: str, code: str):
@@ -16,7 +17,23 @@ def write_fix_to_disk(filename: str, code: str):
         return f"Successfully updated {filename}."
     return "Permission denied by human."
 
-# --- THE AGENT LOGIC ---
+# ---  CHROMA CONTEXT RETRIEVAL ---
+def get_standards_context(query: str):
+    try:
+        client = chromadb.PersistentClient(path="~/Dev/AI/RAG_Simple/my_knowledge_base")
+        collection = client.get_collection(name="tech_docs")
+
+        query_emb = ollama.embeddings(model="nomic-embed-text", prompt=query)["embedding"]
+        results = collection.query(query_embeddings=[query_emb], n_results=2)
+
+        # pull out text chunks that matched
+        context = "\n".join(results['documents'][0])
+        return context
+    except Exception as e:
+        print(f"[WARNING] Could not read vector store: {e}")
+        return ""
+
+# --- THE AGENT LOGIC / ORCHESTRATION LOOP ---
 def run_agent_workflow(file_to_audit):
     # Ensure the target file exists
     if not os.path.exists(file_to_audit):
